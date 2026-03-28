@@ -24,6 +24,10 @@ cfg_select! {
         mod motor;
         pub use self::motor::*;
     }
+    target_os = "quark" => {
+        mod quark;
+        pub use self::quark::*;
+    }
     target_os = "trusty" => {
         mod trusty;
         pub use self::trusty::*;

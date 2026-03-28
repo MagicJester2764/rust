@@ -35,5 +35,8 @@ cfg_select! {
     target_os = "motor" => {
         pub use moto_rt::futex::*;
     }
+    target_os = "quark" => {
+        pub use quark_rt::rt::futex::*;
+    }
     _ => {}
 }

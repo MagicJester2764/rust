@@ -9,6 +9,7 @@ cfg_select! {
         target_os = "dragonfly",
         target_os = "fuchsia",
         target_os = "motor",
+        target_os = "quark",
         target_os = "hermit",
         all(target_os = "wasi", target_env = "p3"),
     ) => {

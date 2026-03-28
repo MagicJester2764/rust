@@ -10,6 +10,10 @@ cfg_select! {
         mod motor;
         pub use motor::*;
     }
+    target_os = "quark" => {
+        mod quark;
+        pub use quark::*;
+    }
     all(target_vendor = "fortanix", target_env = "sgx") => {
         mod sgx;
         pub use sgx::{DEFAULT_MIN_STACK_SIZE, Thread, current_os_id, sleep, yield_now};
@@ -148,6 +152,7 @@ cfg_select! {
     target_os = "wasi",
     target_vendor = "apple",
     target_os = "motor",
+    target_os = "quark",
     target_os = "vexos",
     target_os = "fuchsia",
 )))]

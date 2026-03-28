@@ -6,15 +6,17 @@
 use hermit_abi as libc;
 #[cfg(target_os = "motor")]
 use moto_rt::libc;
+#[cfg(target_os = "quark")]
+use quark_rt::libc;
 
-#[cfg(target_os = "motor")]
+#[cfg(any(target_os = "motor", target_os = "quark"))]
 use super::owned::OwnedFd;
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 use crate::fs;
 use crate::io;
 #[cfg(target_os = "hermit")]
 use crate::os::hermit::io::OwnedFd;
-#[cfg(all(not(target_os = "hermit"), not(target_os = "motor")))]
+#[cfg(all(not(target_os = "hermit"), not(target_os = "motor"), not(target_os = "quark")))]
 use crate::os::raw;
 #[cfg(all(doc, not(target_arch = "wasm32")))]
 use crate::os::unix::io::AsFd;
@@ -22,15 +24,15 @@ use crate::os::unix::io::AsFd;
 use crate::os::unix::io::OwnedFd;
 #[cfg(target_os = "wasi")]
 use crate::os::wasi::io::OwnedFd;
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 use crate::sys::{AsInner, FromInner, IntoInner};
 
 /// Raw file descriptors.
 #[stable(feature = "rust1", since = "1.0.0")]
-#[cfg(all(not(target_os = "hermit"), not(target_os = "motor")))]
+#[cfg(all(not(target_os = "hermit"), not(target_os = "motor"), not(target_os = "quark")))]
 pub type RawFd = raw::c_int;
 #[stable(feature = "rust1", since = "1.0.0")]
-#[cfg(any(target_os = "hermit", target_os = "motor"))]
+#[cfg(any(target_os = "hermit", target_os = "motor", target_os = "quark"))]
 pub type RawFd = i32;
 
 /// A trait to extract the raw file descriptor from an underlying object.
@@ -168,7 +170,7 @@ impl FromRawFd for RawFd {
 }
 
 #[stable(feature = "rust1", since = "1.0.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl AsRawFd for fs::File {
     #[inline]
     fn as_raw_fd(&self) -> RawFd {
@@ -176,7 +178,7 @@ impl AsRawFd for fs::File {
     }
 }
 #[stable(feature = "from_raw_os", since = "1.1.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl FromRawFd for fs::File {
     #[inline]
     unsafe fn from_raw_fd(fd: RawFd) -> fs::File {
@@ -184,7 +186,7 @@ impl FromRawFd for fs::File {
     }
 }
 #[stable(feature = "into_raw_os", since = "1.4.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl IntoRawFd for fs::File {
     #[inline]
     fn into_raw_fd(self) -> RawFd {
@@ -193,7 +195,7 @@ impl IntoRawFd for fs::File {
 }
 
 #[stable(feature = "asraw_stdio", since = "1.21.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl AsRawFd for io::Stdin {
     #[inline]
     fn as_raw_fd(&self) -> RawFd {
@@ -218,7 +220,7 @@ impl AsRawFd for io::Stderr {
 }
 
 #[stable(feature = "asraw_stdio_locks", since = "1.35.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl<'a> AsRawFd for io::StdinLock<'a> {
     #[inline]
     fn as_raw_fd(&self) -> RawFd {
@@ -290,7 +292,7 @@ impl<T: AsRawFd> AsRawFd for Box<T> {
 }
 
 #[stable(feature = "anonymous_pipe", since = "1.87.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl AsRawFd for io::PipeReader {
     fn as_raw_fd(&self) -> RawFd {
         self.0.as_raw_fd()
@@ -298,7 +300,7 @@ impl AsRawFd for io::PipeReader {
 }
 
 #[stable(feature = "anonymous_pipe", since = "1.87.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl FromRawFd for io::PipeReader {
     unsafe fn from_raw_fd(raw_fd: RawFd) -> Self {
         Self::from_inner(unsafe { FromRawFd::from_raw_fd(raw_fd) })
@@ -306,7 +308,7 @@ impl FromRawFd for io::PipeReader {
 }
 
 #[stable(feature = "anonymous_pipe", since = "1.87.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl IntoRawFd for io::PipeReader {
     fn into_raw_fd(self) -> RawFd {
         self.0.into_raw_fd()
@@ -314,7 +316,7 @@ impl IntoRawFd for io::PipeReader {
 }
 
 #[stable(feature = "anonymous_pipe", since = "1.87.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl AsRawFd for io::PipeWriter {
     fn as_raw_fd(&self) -> RawFd {
         self.0.as_raw_fd()
@@ -322,7 +324,7 @@ impl AsRawFd for io::PipeWriter {
 }
 
 #[stable(feature = "anonymous_pipe", since = "1.87.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl FromRawFd for io::PipeWriter {
     unsafe fn from_raw_fd(raw_fd: RawFd) -> Self {
         Self::from_inner(unsafe { FromRawFd::from_raw_fd(raw_fd) })
@@ -330,7 +332,7 @@ impl FromRawFd for io::PipeWriter {
 }
 
 #[stable(feature = "anonymous_pipe", since = "1.87.0")]
-#[cfg(not(target_os = "trusty"))]
+#[cfg(not(any(target_os = "trusty", target_os = "quark")))]
 impl IntoRawFd for io::PipeWriter {
     fn into_raw_fd(self) -> RawFd {
         self.0.into_raw_fd()

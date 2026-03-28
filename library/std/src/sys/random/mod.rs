@@ -66,6 +66,10 @@ cfg_select! {
         mod motor;
         pub use motor::fill_bytes;
     }
+    target_os = "quark" => {
+        mod quark;
+        pub use quark::fill_bytes;
+    }
     all(target_vendor = "fortanix", target_env = "sgx") => {
         mod sgx;
         pub use sgx::fill_bytes;

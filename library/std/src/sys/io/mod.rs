@@ -41,6 +41,10 @@ mod is_terminal {
             mod motor;
             pub use motor::*;
         }
+        target_os = "quark" => {
+            mod quark;
+            pub use quark::*;
+        }
         _ => {
             mod unsupported;
             pub use unsupported::*;

@@ -85,4 +85,4 @@ rustflags = [
 rustc-std-workspace-core = { path = 'rustc-std-workspace-core' }
 rustc-std-workspace-alloc = { path = 'rustc-std-workspace-alloc' }
 rustc-std-workspace-std = { path = 'rustc-std-workspace-std' }
-quark-rt = { path = '/home/nrupard/src/osdev/quark/user/quark-rt' }
+quark-rt = { path = '../../quark/user/quark-rt' }

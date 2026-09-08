@@ -30,7 +30,6 @@ cfg_select! {
         target_os = "zkvm",
         target_os = "trusty",
         target_os = "vexos",
-        target_os = "quark",
     ) => {
         mod no_threads;
         pub use no_threads::{EagerStorage, LazyStorage, thread_local_inner};
@@ -101,7 +100,6 @@ pub(crate) mod guard {
             target_os = "zkvm",
             target_os = "trusty",
             target_os = "vexos",
-            target_os = "quark",
         ) => {
             pub(crate) fn enable() {
                 // FIXME: Right now there is no concept of "thread exit" on
@@ -120,6 +118,7 @@ pub(crate) mod guard {
         any(
             target_os = "hermit",
             target_os = "xous",
+            target_os = "quark",
         ) => {
             // `std` is the only runtime, so it just calls the destructor functions
             // itself when the time comes.

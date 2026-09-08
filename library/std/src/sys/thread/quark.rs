@@ -23,17 +23,12 @@ impl Thread {
             // which is itself held in one, so reading it before FS is pointed
             // anywhere would fault.
             unsafe {
-                let need = quark_rt::tls::required_bytes();
-                let layout = crate::alloc::Layout::from_size_align_unchecked(
-                    need,
-                    quark_rt::tls::TLS_ALIGN,
-                );
-                let mem = crate::alloc::alloc(layout);
-                if !mem.is_null() {
-                    // Not freed on exit: the block has to stay valid for as
-                    // long as anything might still read a thread-local through
-                    // it, and there is no hook that runs after the last one.
-                    let _ = quark_rt::tls::init_in(mem, need);
+                // Mapped, not allocated: setting up storage before the thread
+                // is fully running should not need the allocator's lock, and
+                // an error in the layout arithmetic should hit unmapped memory
+                // rather than another allocation's bookkeeping.
+                if let Ok((mem, len)) = quark_rt::tls::map_region() {
+                    let _ = quark_rt::tls::init_in(mem, len);
                 }
 
                 let init = Box::from_raw(arg as *mut ThreadInit);
@@ -41,9 +36,14 @@ impl Thread {
                 rust_start();
 
                 // Exiting the task here skips everything a thread normally
-                // does on the way out. Other platforms reach this through TLS
-                // destructors; there are none to run us, so run them.
+                // does on the way out, and Quark has no hook that runs on the
+                // way out either — `guard::enable` is a no-op for this target
+                // because std is the whole runtime. So run both by hand.
                 //
+                // Destructors first: a thread-local's Drop may still reach for
+                // the current thread handle, which thread_cleanup drops.
+                crate::sys::thread_local::destructors::run();
+
                 // thread_cleanup in particular drops this thread's handle,
                 // which is what releases its reference to the join packet.
                 // Without it `join` finds the Arc still shared and panics with

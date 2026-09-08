@@ -6,22 +6,79 @@ use crate::time::Duration;
 
 pub const DEFAULT_MIN_STACK_SIZE: usize = 1024 * 64;
 
-pub struct Thread(!);
+/// A thread is a task sharing this one's address space. The kernel refcounts
+/// address spaces, so the shared one outlives whichever of them exits first.
+pub struct Thread(usize);
 
 impl Thread {
-    pub unsafe fn new(_stack: usize, _init: Box<ThreadInit>) -> io::Result<Thread> {
-        Err(io::Error::UNSUPPORTED_PLATFORM)
+    pub unsafe fn new(stack: usize, init: Box<ThreadInit>) -> io::Result<Thread> {
+        let pages = (stack.max(DEFAULT_MIN_STACK_SIZE) + 4095) / 4096;
+
+        // Leaked deliberately: ownership passes to the new thread, which
+        // reconstitutes it. Reclaimed here only if the spawn fails.
+        let data = Box::into_raw(init);
+
+        extern "C" fn start(arg: usize) -> ! {
+            // Thread-locals first. `ThreadInit::init` sets the current thread,
+            // which is itself held in one, so reading it before FS is pointed
+            // anywhere would fault.
+            unsafe {
+                let need = quark_rt::tls::required_bytes();
+                let layout = crate::alloc::Layout::from_size_align_unchecked(
+                    need,
+                    quark_rt::tls::TLS_ALIGN,
+                );
+                let mem = crate::alloc::alloc(layout);
+                if !mem.is_null() {
+                    // Not freed on exit: the block has to stay valid for as
+                    // long as anything might still read a thread-local through
+                    // it, and there is no hook that runs after the last one.
+                    let _ = quark_rt::tls::init_in(mem, need);
+                }
+
+                let init = Box::from_raw(arg as *mut ThreadInit);
+                let rust_start = init.init();
+                rust_start();
+
+                // Exiting the task here skips everything a thread normally
+                // does on the way out. Other platforms reach this through TLS
+                // destructors; there are none to run us, so run them.
+                //
+                // thread_cleanup in particular drops this thread's handle,
+                // which is what releases its reference to the join packet.
+                // Without it `join` finds the Arc still shared and panics with
+                // "threads should not terminate unexpectedly".
+                crate::rt::thread_cleanup();
+            }
+            quark_rt::syscall::sys_exit_code(0);
+        }
+
+        match quark_rt::thread::spawn_with_arg(start, data as usize, pages) {
+            Ok(t) => Ok(Thread(t.tid())),
+            Err(()) => {
+                // The spawn did not take ownership, so this is still ours.
+                drop(unsafe { Box::from_raw(data) });
+                Err(io::Error::UNSUPPORTED_PLATFORM)
+            }
+        }
     }
 
     pub fn join(self) {
-        self.0
+        // sys_wait reaps whichever child exits first, so loop until it is ours.
+        loop {
+            match quark_rt::syscall::sys_wait() {
+                Ok((tid, _)) if tid == self.0 => return,
+                Ok(_) => continue,
+                Err(()) => return,
+            }
+        }
     }
 }
 
 pub fn set_name(_name: &CStr) {}
 
 pub fn current_os_id() -> Option<u64> {
-    None
+    Some(quark_rt::syscall::sys_getpid() as u64)
 }
 
 pub fn available_parallelism() -> io::Result<NonZero<usize>> {

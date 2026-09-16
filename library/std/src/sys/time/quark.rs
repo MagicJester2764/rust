@@ -6,7 +6,7 @@ const TICK_PERIOD_NS: u64 = 10_000_000; // 10 ms per tick (100 Hz PIT)
 pub struct Instant(u64); // ticks
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct SystemTime(u64); // ticks since boot (no RTC yet)
+pub struct SystemTime(u64); // ticks since 1970, from the clock the kernel read at boot
 
 pub const UNIX_EPOCH: SystemTime = SystemTime(0);
 
@@ -35,7 +35,7 @@ impl SystemTime {
     pub const MIN: SystemTime = SystemTime(0);
 
     pub fn now() -> SystemTime {
-        SystemTime(quark_rt::rt::ticks())
+        SystemTime(quark_rt::rt::unix_ticks())
     }
 
     pub fn sub_time(&self, other: &SystemTime) -> Result<Duration, Duration> {
